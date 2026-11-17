@@ -139,7 +139,7 @@ func TestActionSchemaPermittedActions(t *testing.T) {
 	}{
 		{"multiple", engine.View{Allowed: []engine.ActionSpec{{Type: "say"}, {Type: "pass"}, {Type: "pm.send", Optional: true}, {Type: "host.advance"}}}, []string{expectedActionBranch("say", textPayload), expectedActionBranch("pass", emptyPayload)}},
 		{"ready priority", engine.View{Phase: engine.PhaseView{Type: "reading"}, Allowed: []engine.ActionSpec{{Type: "say"}, {Type: "ready"}}}, []string{expectedActionBranch("ready", emptyPayload)}},
-		{"search priority", engine.View{Allowed: []engine.ActionSpec{{Type: "ready"}, {Type: "search"}}}, []string{expectedActionBranch("search", `{"type":"object","properties":{"location":{"type":"string","minLength":1}},"required":["location"],"additionalProperties":false}`)}},
+		{"search priority", engine.View{Allowed: []engine.ActionSpec{{Type: "ready"}, {Type: "search"}}}, []string{expectedActionBranch("search", emptyPayload)}},
 		{"empty", engine.View{}, nil},
 		{"filtered empty", engine.View{Allowed: []engine.ActionSpec{{Type: "pm.send", Optional: true}, {Type: "host.advance"}}}, nil},
 	} {

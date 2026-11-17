@@ -19,6 +19,7 @@ import (
 
 	"github.com/coder/websocket"
 	"jbs/internal/engine"
+	"jbs/internal/importer/kv1"
 	"jbs/internal/importer/mirage"
 	"jbs/internal/protocol"
 )
@@ -95,7 +96,24 @@ func run() int {
 		return report(errors.New("invalid server URL"))
 	}
 	if len(rest) == 0 || rest[0] == "help" || rest[0] == "--help" {
-		fmt.Println("jbs [--profile NAME] [--server URL] [--json] room create|list | scripts | join ROOM --char ID --name NAME | state | action TYPE JSON | say TEXT | pass | ready | advance | search LOCATION | clues | publish ID | vote QUESTION OPTION | pm TARGET TEXT | wait --until-actions|--until-my-turn|--until-phase ID --timeout 10m | log --since N | import mirage DIR --truth FILE --culprit NAME --out DIR")
+		fmt.Println(`jbs [--profile NAME] [--server URL] [--json] COMMAND
+
+  room create|list                 create or list rooms
+  scripts                          list loaded scripts
+  join ROOM --char ID --name NAME  join a seat
+  state | clues | dm               view room state, clues, or host notes
+  say TEXT | pass | ready | advance
+  search [LOCATION] [--clue ID|--kind KIND|--location ID]
+  publish ID | vote QUESTION OPTION | pm TARGET TEXT
+  dice roll|ask QUESTION|answer TEXT
+  card play CARD [--color C] [--target P] | draw | pass | score
+  skill [--target P]               use the seat's special skill
+  host advance|note TEXT|points TARGET DELTA|grant TARGET CLUE|show TARGET [--public]|extra TARGET N|order P1,P2|settle|throne TARGET
+  action TYPE [JSON_PAYLOAD]
+  wait --until-actions|--until-my-turn|--until-phase ID --timeout 10m
+  log --since N
+  import kv1 DIR --out DIR [--assets DIR] [--only k1,k12]
+  import mirage DIR --truth FILE --culprit NAME --out DIR`)
 		return 0
 	}
 	code, err := c.command(rest)
@@ -169,12 +187,52 @@ func (c *CLI) roomPath(suffix string) string {
 	return "/api/rooms/" + url.PathEscape(c.session.Room) + suffix
 }
 func (c *CLI) view() (engine.View, error) {
+	return c.viewAs(c.session.Token)
+}
+func (c *CLI) viewAs(token string) (engine.View, error) {
 	var v engine.View
-	if c.session.Room == "" || c.session.Token == "" {
+	if c.session.Room == "" || token == "" {
 		return v, errors.New("join a room first")
 	}
-	err := c.request("GET", c.roomPath("/view"), nil, c.session.Token, &v)
+	err := c.request("GET", c.roomPath("/view"), nil, token, &v)
 	return v, err
+}
+func (c *CLI) hostToken() (string, error) {
+	if c.session.HostToken == "" {
+		return "", errors.New("no host token in this profile")
+	}
+	return c.session.HostToken, nil
+}
+func (c *CLI) submit(typ string, payload any, token string) (int, error) {
+	if token == "" {
+		return 1, errors.New("join a room first")
+	}
+	var v engine.View
+	for i := 0; i < 3; i++ {
+		var err error
+		if v, err = c.viewAs(token); err != nil {
+			return 1, err
+		}
+		a := engine.NewAction(typ, payload)
+		a.StateID = v.StateID
+		err = c.request("POST", c.roomPath("/action"), a, token, &v)
+		if err == nil {
+			c.output(map[string]any{"ok": true, "phase": v.Phase, "ended": v.Ended, "state_id": v.StateID})
+			return 0, nil
+		}
+		if !strings.Contains(err.Error(), "stale state_id") {
+			return 1, err
+		}
+	}
+	return 1, engine.ErrStale
+}
+func findSpec(specs []engine.ActionSpec, typ string) (engine.ActionSpec, bool) {
+	for _, s := range specs {
+		if s.Type == typ {
+			return s, true
+		}
+	}
+	return engine.ActionSpec{}, false
 }
 func flags(name string) *flag.FlagSet {
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
@@ -192,8 +250,38 @@ func (c *CLI) command(args []string) (int, error) {
 		}
 		return 0, err
 	case "import":
-		if len(tail) < 2 || tail[0] != "mirage" {
-			return 1, errors.New("usage: import mirage DIR --truth FILE --culprit NAME --out DIR")
+		if len(tail) < 2 {
+			return 1, errors.New("usage: import mirage DIR ... | import kv1 DIR --out DIR")
+		}
+		if tail[0] == "kv1" {
+			fs := flags("import kv1")
+			out := fs.String("out", "scripts/imported", "output directory")
+			assets := fs.String("assets", "", "asset directory (default OUT/assets)")
+			only := fs.String("only", "", "comma separated script ids")
+			if err := fs.Parse(tail[2:]); err != nil {
+				return 1, err
+			}
+			opts := kv1.Options{}
+			if *only != "" {
+				opts.Only = map[string]bool{}
+				for _, id := range strings.Split(*only, ",") {
+					opts.Only[strings.TrimSpace(id)] = true
+				}
+			}
+			m, err := kv1.Import(tail[1], *out, *assets, opts)
+			if err != nil {
+				return 1, err
+			}
+			c.output(m)
+			for _, s := range m.Scripts {
+				if s.Error != "" {
+					return 1, fmt.Errorf("%s: %s", s.ID, s.Error)
+				}
+			}
+			return 0, nil
+		}
+		if tail[0] != "mirage" {
+			return 1, errors.New("usage: import mirage DIR ... | import kv1 DIR --out DIR")
 		}
 		fs := flags("import")
 		truth := fs.String("truth", filepath.Join(filepath.Dir(tail[1]), "Truth.json"), "truth JSON")
@@ -322,10 +410,32 @@ func (c *CLI) command(args []string) (int, error) {
 			}
 			payload = map[string]string{"text": strings.Join(tail, " ")}
 		case "search":
-			if len(tail) != 1 {
-				return 1, errors.New("search LOCATION")
+			fs := flags("search")
+			clue := fs.String("clue", "", "clue id")
+			kind := fs.String("kind", "", "clue category")
+			loc := fs.String("location", "", "legacy location id")
+			if err := fs.Parse(tail); err != nil {
+				return 1, err
 			}
-			payload = map[string]string{"location": tail[0]}
+			values := map[string]string{}
+			if *clue != "" {
+				values["clue"] = *clue
+			}
+			if *kind != "" {
+				values["kind"] = *kind
+			}
+			if *loc != "" {
+				values["location"] = *loc
+			}
+			if fs.NArg() == 1 {
+				values["location"] = fs.Arg(0)
+			} else if fs.NArg() > 1 {
+				return 1, errors.New("search [LOCATION] [--clue ID|--kind KIND|--location ID]")
+			}
+			if len(values) > 1 {
+				return 1, errors.New("choose one of --clue, --kind, or --location")
+			}
+			payload = values
 		case "publish":
 			if len(tail) != 1 {
 				return 1, errors.New("publish CLUE_ID")
@@ -344,36 +454,203 @@ func (c *CLI) command(args []string) (int, error) {
 			typ = "pm.send"
 			payload = map[string]string{"to": tail[0], "text": strings.Join(tail[1:], " ")}
 		case "action":
-			if len(tail) != 2 {
-				return 1, errors.New("action TYPE JSON_PAYLOAD")
+			if len(tail) < 1 {
+				return 1, errors.New("action TYPE [JSON_PAYLOAD]")
 			}
 			typ = tail[0]
-			if err := json.Unmarshal([]byte(tail[1]), &payload); err != nil {
-				return 1, err
+			body := tail[1:]
+			if len(body) == 2 && body[0] == "--payload" {
+				body = body[1:]
+			}
+			if len(body) == 1 {
+				if err := json.Unmarshal([]byte(body[0]), &payload); err != nil {
+					return 1, err
+				}
+			} else if len(body) != 0 {
+				return 1, errors.New("action TYPE [JSON_PAYLOAD]")
 			}
 		}
 		tok := c.session.Token
-		if cmd == "advance" && c.session.HostToken != "" {
-			tok = c.session.HostToken
-		}
-		var v engine.View
-		for i := 0; i < 3; i++ {
-			err := c.request("GET", c.roomPath("/view"), nil, tok, &v)
+		if cmd == "advance" {
+			host, err := c.hostToken()
 			if err != nil {
 				return 1, err
 			}
-			a := engine.NewAction(typ, payload)
-			a.StateID = v.StateID
-			err = c.request("POST", c.roomPath("/action"), a, tok, &v)
-			if err == nil {
-				c.output(map[string]any{"ok": true, "phase": v.Phase, "ended": v.Ended, "state_id": v.StateID})
-				return 0, nil
-			}
-			if !strings.Contains(err.Error(), "stale state_id") {
+			tok = host
+		}
+		return c.submit(typ, payload, tok)
+	case "dice":
+		if len(tail) == 0 {
+			return 1, errors.New("dice roll|ask QUESTION|answer TEXT")
+		}
+		switch tail[0] {
+		case "roll":
+			host, err := c.hostToken()
+			if err != nil {
 				return 1, err
 			}
+			return c.submit("dice.roll", nil, host)
+		case "ask":
+			text := strings.Join(tail[1:], " ")
+			if text == "" {
+				return 1, errors.New("dice ask QUESTION")
+			}
+			return c.submit("dice.ask", map[string]string{"question": text}, c.session.Token)
+		case "answer":
+			text := strings.Join(tail[1:], " ")
+			if text == "" {
+				return 1, errors.New("dice answer TEXT")
+			}
+			return c.submit("dice.answer", map[string]string{"text": text}, c.session.Token)
+		default:
+			return 1, errors.New("dice roll|ask QUESTION|answer TEXT")
 		}
-		return 1, engine.ErrStale
+	case "card":
+		if len(tail) == 0 {
+			return 1, errors.New("card play CARD [--color C] [--target PID] | draw | pass | score")
+		}
+		switch tail[0] {
+		case "play":
+			payload := map[string]string{}
+			var card string
+			for i := 1; i < len(tail); i++ {
+				switch tail[i] {
+				case "--color", "--target":
+					if i+1 >= len(tail) {
+						return 1, errors.New("card play CARD [--color C] [--target PID]")
+					}
+					payload[strings.TrimPrefix(tail[i], "--")] = tail[i+1]
+					i++
+				default:
+					if card != "" {
+						return 1, errors.New("card play CARD [--color C] [--target PID]")
+					}
+					card = tail[i]
+				}
+			}
+			if card == "" {
+				return 1, errors.New("card play CARD [--color C] [--target PID]")
+			}
+			payload["card"] = card
+			return c.submit("card.play", payload, c.session.Token)
+		case "draw":
+			return c.submit("card.draw", nil, c.session.Token)
+		case "pass":
+			return c.submit("card.pass", nil, c.session.Token)
+		case "score":
+			v, err := c.view()
+			if err != nil {
+				return 1, err
+			}
+			c.output(v.Data["cards"])
+			return 0, nil
+		default:
+			return 1, errors.New("card play CARD [--color C] [--target PID] | draw | pass | score")
+		}
+	case "skill":
+		v, err := c.view()
+		if err != nil {
+			return 1, err
+		}
+		spec, ok := findSpec(v.Allowed, "points.skill")
+		if !ok {
+			return 1, errors.New("no skill available")
+		}
+		payload := map[string]string{}
+		if id := spec.Params["skill"]; id != "" {
+			payload["skill"] = id
+		}
+		for _, f := range spec.Fields {
+			if f.Key == "skill" && len(f.Options) > 0 {
+				payload["skill"] = f.Options[0].Value
+			}
+		}
+		if len(tail) > 1 && tail[0] == "--target" {
+			payload["target"] = tail[1]
+		} else if len(tail) != 0 {
+			return 1, errors.New("skill [--target PID]")
+		}
+		if payload["skill"] == "" {
+			return 1, errors.New("no skill available")
+		}
+		return c.submit("points.skill", payload, c.session.Token)
+	case "host":
+		if len(tail) == 0 {
+			return 1, errors.New("host advance|note TEXT|points TARGET DELTA|grant TARGET CLUE|show TARGET COUNT|extra TARGET COUNT|order P1,P2|settle|throne TARGET")
+		}
+		host, err := c.hostToken()
+		if err != nil {
+			return 1, err
+		}
+		switch tail[0] {
+		case "advance":
+			return c.submit("host.advance", nil, host)
+		case "note":
+			if len(tail) < 2 {
+				return 1, errors.New("host note TEXT")
+			}
+			return c.submit("host.narrate", map[string]string{"text": strings.Join(tail[1:], " ")}, host)
+		case "points":
+			if len(tail) != 3 {
+				return 1, errors.New("host points TARGET DELTA")
+			}
+			delta, err := strconv.Atoi(tail[2])
+			if err != nil {
+				return 1, err
+			}
+			return c.submit("host.points", map[string]any{"target": tail[1], "delta": delta}, host)
+		case "grant":
+			if len(tail) != 3 {
+				return 1, errors.New("host grant TARGET CLUE")
+			}
+			return c.submit("host.grant_clue", map[string]string{"target": tail[1], "clue": tail[2]}, host)
+		case "show":
+			if len(tail) < 2 || len(tail) > 3 {
+				return 1, errors.New("host show TARGET [--public]")
+			}
+			payload := map[string]any{"target": tail[1]}
+			if len(tail) == 3 {
+				if tail[2] != "--public" {
+					return 1, errors.New("host show TARGET [--public]")
+				}
+				payload["public"] = true
+			}
+			return c.submit("host.show_clues", payload, host)
+		case "extra":
+			if len(tail) != 3 {
+				return 1, errors.New("host extra TARGET COUNT")
+			}
+			count, err := strconv.Atoi(tail[2])
+			if err != nil {
+				return 1, err
+			}
+			return c.submit("host.extra_pick", map[string]any{"target": tail[1], "count": count}, host)
+		case "order":
+			if len(tail) != 2 {
+				return 1, errors.New("host order P1,P2,...")
+			}
+			return c.submit("host.order", map[string]any{"order": strings.Split(tail[1], ",")}, host)
+		case "settle":
+			return c.submit("host.settle", nil, host)
+		case "throne":
+			if len(tail) != 2 {
+				return 1, errors.New("host throne TARGET")
+			}
+			return c.submit("host.throne", map[string]string{"target": tail[1]}, host)
+		default:
+			return 1, errors.New("unknown host command")
+		}
+	case "dm":
+		host, err := c.hostToken()
+		if err != nil {
+			return 1, err
+		}
+		v, err := c.viewAs(host)
+		if err != nil {
+			return 1, err
+		}
+		c.output(v.Data["host"])
+		return 0, nil
 	default:
 		return 1, fmt.Errorf("unknown command %q", cmd)
 	}

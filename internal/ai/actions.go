@@ -47,11 +47,22 @@ func firstVote(s engine.ActionSpec, v engine.View) (question, option string) {
 	return "", ""
 }
 
+type poolItem struct {
+	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Kind   string `json:"kind"`
+	Number int    `json:"number"`
+}
+
 type clueView struct {
 	Own       json.RawMessage `json:"own"`
 	Public    json.RawMessage `json:"public"`
 	Locations []location      `json:"locations"`
+	Pool      []poolItem      `json:"pool"`
 	AP        int             `json:"ap"`
+	Quota     int             `json:"quota"`
+	PicksLeft int             `json:"picks_left"`
+	Mode      string          `json:"mode"`
 }
 
 func clues(v engine.View) (clueView, bool) {
@@ -67,12 +78,26 @@ func clues(v engine.View) (clueView, bool) {
 	return c, true
 }
 
-// Only compulsory progress actions drive the loop, never optional PM/publish.
+type cardView struct {
+	Playable []struct {
+		ID    string `json:"id"`
+		Kind  string `json:"kind"`
+		Color string `json:"color"`
+	} `json:"playable"`
+}
+
+type diceView struct {
+	Question string            `json:"question"`
+	Keywords map[string]string `json:"keywords"`
+}
+
+// Only compulsory progress actions drive the loop, never optional PM/publish,
+// strategy skills, or host-only controls.
 // Search takes priority over ready while action points/locations remain.
 func turnActions(v engine.View) []engine.ActionSpec {
 	var out []engine.ActionSpec
 	for _, s := range v.Allowed {
-		if s.Optional {
+		if s.Optional || s.Type == "points.skill" {
 			continue
 		}
 		if s.Type != "host.advance" {
@@ -86,7 +111,8 @@ func turnActions(v engine.View) []engine.ActionSpec {
 	}
 	if s, ok := findSpec(out, "search"); ok {
 		c, hasClues := clues(v)
-		if !hasClues || (c.AP > 0 && slices.ContainsFunc(c.Locations, func(l location) bool { return l.Remaining > 0 })) {
+		remaining := slices.ContainsFunc(c.Locations, func(l location) bool { return l.Remaining > 0 })
+		if !hasClues || (c.AP > 0 && (remaining || len(c.Pool) > 0)) {
 			return []engine.ActionSpec{s}
 		}
 		out = slices.DeleteFunc(out, func(s engine.ActionSpec) bool { return s.Type == "search" })
@@ -108,8 +134,14 @@ func findSpec(specs []engine.ActionSpec, typ string) (engine.ActionSpec, bool) {
 
 func payloadKeys(s engine.ActionSpec) []string {
 	var keys []string
-	for k := range s.Params {
-		keys = append(keys, k)
+	if len(s.Fields) > 0 {
+		for _, f := range s.Fields {
+			keys = append(keys, f.Key)
+		}
+	} else {
+		for k := range s.Params {
+			keys = append(keys, k)
+		}
 	}
 	slices.Sort(keys)
 	if len(keys) != 0 {
@@ -119,7 +151,12 @@ func payloadKeys(s engine.ActionSpec) []string {
 	case "say":
 		return []string{"text"}
 	case "search":
-		return []string{"location"}
+		// A bare search spec is the legacy location search; pool searches
+		// without a kind/pick parameter are parameterless random draws.
+		if len(s.Options) > 0 {
+			return []string{"location"}
+		}
+		return nil
 	case "vote":
 		return []string{"option"}
 	case "vote.cast":
@@ -127,6 +164,41 @@ func payloadKeys(s engine.ActionSpec) []string {
 	default:
 		return nil
 	}
+}
+
+func requiredKeys(s engine.ActionSpec) []string {
+	if len(s.Fields) == 0 {
+		return payloadKeys(s)
+	}
+	var keys []string
+	for _, f := range s.Fields {
+		if f.Required {
+			keys = append(keys, f.Key)
+		}
+	}
+	slices.Sort(keys)
+	return keys
+}
+
+func fieldOptions(s engine.ActionSpec, key string) []engine.Option {
+	for _, f := range s.Fields {
+		if f.Key == key {
+			return f.Options
+		}
+	}
+	if len(s.Fields) == 0 && len(payloadKeys(s)) == 1 && len(s.Options) > 0 {
+		return s.Options
+	}
+	return nil
+}
+
+func schemaFieldOptions(s engine.ActionSpec, key string) []engine.Option {
+	for _, f := range s.Fields {
+		if f.Key == key {
+			return f.Options
+		}
+	}
+	return nil
 }
 
 func actionSchema(specs []engine.ActionSpec) map[string]any {
@@ -138,10 +210,22 @@ func actionSchema(specs []engine.ActionSpec) map[string]any {
 	}
 	branches := make([]map[string]any, 0, len(specs))
 	for _, spec := range specs {
-		keys := append([]string{}, payloadKeys(spec)...)
+		keys := payloadKeys(spec)
 		properties := make(map[string]any, len(keys))
 		for _, key := range keys {
-			properties[key] = map[string]any{"type": "string", "minLength": 1}
+			prop := map[string]any{"type": "string", "minLength": 1}
+			if opts := schemaFieldOptions(spec, key); len(opts) > 0 {
+				values := make([]string, 0, len(opts))
+				for _, o := range opts {
+					values = append(values, o.Value)
+				}
+				prop["enum"] = values
+			}
+			properties[key] = prop
+		}
+		required := requiredKeys(spec)
+		if required == nil {
+			required = []string{}
 		}
 		branches = append(branches, map[string]any{
 			"type": "object",
@@ -149,7 +233,7 @@ func actionSchema(specs []engine.ActionSpec) map[string]any {
 				"action": map[string]any{"type": "string", "const": spec.Type},
 				"payload": map[string]any{
 					"type": "object", "properties": properties,
-					"required": keys, "additionalProperties": false,
+					"required": required, "additionalProperties": false,
 				},
 				"thought": map[string]any{"type": "string"},
 			},
@@ -170,8 +254,17 @@ func validateDecision(d Decision, v engine.View) error {
 		return err
 	}
 	keys := payloadKeys(s)
-	if len(p) != len(keys) {
+	if len(s.Fields) == 0 {
+		if len(p) != len(keys) {
+			return ErrInvalidAction
+		}
+	} else if len(p) > len(keys) {
 		return ErrInvalidAction
+	}
+	for _, k := range requiredKeys(s) {
+		if _, ok := p[k]; !ok {
+			return ErrInvalidAction
+		}
 	}
 	for k, raw := range p {
 		if !slices.Contains(keys, k) || k == "thought" {
@@ -181,18 +274,24 @@ func validateDecision(d Decision, v engine.View) error {
 		if json.Unmarshal(raw, &value) != nil || strings.TrimSpace(value) == "" {
 			return ErrInvalidAction
 		}
+		if opts := fieldOptions(s, k); len(opts) > 0 &&
+			!slices.ContainsFunc(opts, func(o engine.Option) bool { return o.Value == value }) {
+			return ErrInvalidAction
+		}
 		switch d.Action {
 		case "say":
 			if utf8.RuneCountInString(value) > 4000 {
 				return ErrInvalidAction
 			}
 		case "search":
-			if c, exists := clues(v); exists {
-				if c.AP <= 0 || !slices.ContainsFunc(c.Locations, func(l location) bool { return l.ID == value && l.Remaining > 0 }) {
+			if k == "location" {
+				if c, exists := clues(v); exists {
+					if c.AP <= 0 || !slices.ContainsFunc(c.Locations, func(l location) bool { return l.ID == value && l.Remaining > 0 }) {
+						return ErrInvalidAction
+					}
+				} else if len(s.Options) == 0 {
 					return ErrInvalidAction
 				}
-			} else if len(s.Options) == 0 {
-				return ErrInvalidAction
 			}
 			if len(s.Options) > 0 && !slices.ContainsFunc(s.Options, func(o engine.Option) bool { return o.Value == value }) {
 				return ErrInvalidAction
@@ -226,7 +325,7 @@ func validateDecision(d Decision, v engine.View) error {
 func safeDecision(v engine.View, restrict string) (Decision, bool) {
 	specs := turnActions(v)
 	// Passing is safer than fabricating a speech when the provider fails.
-	for _, typ := range []string{"ready", "pass", "search", "vote.cast", "vote", "say"} {
+	for _, typ := range []string{"ready", "pass", "dice.ask", "dice.answer", "card.play", "card.draw", "card.pass", "search", "vote.cast", "vote", "say"} {
 		if restrict != "" && typ != restrict {
 			continue
 		}
@@ -236,21 +335,64 @@ func safeDecision(v engine.View, restrict string) (Decision, bool) {
 		}
 		payload := map[string]string{}
 		var value string
+		optionalKind := false
 		switch typ {
 		case "say":
 			value = "我想先听听大家对现有线索的看法。"
-		case "search":
-			if c, exists := clues(v); exists {
-				for _, l := range c.Locations {
-					if l.Remaining > 0 && (len(s.Options) == 0 || slices.ContainsFunc(s.Options, func(o engine.Option) bool { return o.Value == l.ID })) {
-						value = l.ID
-						break
-					}
+		case "dice.answer":
+			var dv diceView
+			b, _ := json.Marshal(v.Data["dice"])
+			_ = json.Unmarshal(b, &dv)
+			for trigger, detail := range dv.Keywords {
+				if strings.Contains(dv.Question, trigger) && detail != "" {
+					value = detail
+					break
 				}
-			} else if len(s.Options) > 0 {
-				value = s.Options[0].Value
+			}
+			if value == "" {
+				value = "我确认上述内容属实，并愿意继续说明。"
+			}
+		case "card.play":
+			var cv cardView
+			b, _ := json.Marshal(v.Data["cards"])
+			_ = json.Unmarshal(b, &cv)
+			if len(cv.Playable) == 0 {
+				continue
+			}
+			payload["card"] = cv.Playable[0].ID
+			if cv.Playable[0].Kind == "recolor" {
+				if f, ok := findField(s, "color"); ok && len(f.Options) > 0 {
+					payload["color"] = f.Options[0].Value
+				}
+			}
+		case "search":
+			if f, ok := findField(s, "kind"); ok && !f.Required {
+				// An optional category can be omitted for a random draw.
+				optionalKind = true
+			}
+			if !optionalKind {
+				if c, exists := clues(v); exists {
+					for _, l := range c.Locations {
+						if l.Remaining > 0 && (len(s.Options) == 0 || slices.ContainsFunc(s.Options, func(o engine.Option) bool { return o.Value == l.ID })) {
+							value = l.ID
+							break
+						}
+					}
+					if value == "" && len(s.Options) > 0 {
+						value = s.Options[0].Value
+					}
+					if value == "" && c.Mode != "location" && len(c.Pool) > 0 {
+						value = c.Pool[0].ID
+					}
+				} else if len(s.Options) > 0 {
+					value = s.Options[0].Value
+				}
 			}
 		case "vote":
+			if len(s.Options) > 0 {
+				value = s.Options[0].Value
+			}
+		case "dice.ask":
 			if len(s.Options) > 0 {
 				value = s.Options[0].Value
 			}
@@ -258,7 +400,7 @@ func safeDecision(v engine.View, restrict string) (Decision, bool) {
 		if typ == "vote.cast" {
 			question, option := firstVote(s, v)
 			payload["question"], payload["option"] = question, option
-		} else {
+		} else if typ != "card.play" && !optionalKind {
 			for _, k := range payloadKeys(s) {
 				payload[k] = value
 			}
@@ -270,4 +412,13 @@ func safeDecision(v engine.View, restrict string) (Decision, bool) {
 		}
 	}
 	return Decision{}, false
+}
+
+func findField(s engine.ActionSpec, key string) (engine.Field, bool) {
+	for _, f := range s.Fields {
+		if f.Key == key {
+			return f, true
+		}
+	}
+	return engine.Field{}, false
 }

@@ -29,6 +29,8 @@ func main() {
 func run() error {
 	addr := flag.String("addr", "127.0.0.1:8080", "listen address")
 	scripts := flag.String("scripts", "scripts", "script package directory")
+	scriptAssets := flag.String("script-assets", "", "static script asset directory (default <scripts>/imported/assets)")
+	strict := flag.Bool("strict-scripts", false, "fail startup when any script fails to load")
 	static := flag.String("static", "web/dist", "built React directory")
 	data := flag.String("data", "data", "private room log directory")
 	backend := flag.String("llm", "qoder", "default AI provider: mock or qoder")
@@ -47,7 +49,7 @@ func run() error {
 		return err
 	}
 	defer persistence.Close()
-	app, err := server.New(reg, persistence, *scripts, *static)
+	app, err := server.New(reg, persistence, *scripts, *static, server.Options{AssetsDir: *scriptAssets, Strict: *strict})
 	if err != nil {
 		return err
 	}

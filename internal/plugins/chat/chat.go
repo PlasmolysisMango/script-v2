@@ -19,6 +19,7 @@ type state struct {
 	Index int
 	Free  bool
 	Done  bool
+	Order []string
 }
 
 func (Plugin) Name() string { return "chat" }
@@ -38,6 +39,22 @@ func (Plugin) Init(r *engine.Registry) error {
 	}}
 	r.PhaseType("intro", pt)
 	r.PhaseType("discussion", pt)
+	r.PhaseType("whisper", engine.PhaseType{
+		OnEnter: func(c *engine.Ctx) {
+			ready.Reset(c)
+			c.Emit("narration", "", engine.Public(), map[string]any{
+				"text": c.Step().Str("narration", "Private discussion: send a private message, then mark ready."),
+			})
+		},
+		EndIf:   ready.AllReady,
+		Allowed: ready.Allowed,
+		Hint: func(c *engine.Ctx, pid string) string {
+			if len(ready.Allowed(c, pid)) > 0 {
+				return "Use private messages to talk with the others, then mark ready."
+			}
+			return "Waiting for the other players to finish private discussion."
+		},
+	})
 	r.Action("say", say)
 	r.Action("pass", func(c *engine.Ctx, a engine.Action) error {
 		s := get(c)
@@ -68,17 +85,53 @@ func get(c *engine.Ctx) *state {
 
 func enter(c *engine.Ctx) {
 	ready.Reset(c)
-	s := &state{Turn: Turn{Round: 1, TotalRounds: max(1, c.Step().Int("rounds", 1))}, Free: c.Step().Bool("free", false)}
+	s := &state{Turn: Turn{Round: 1, TotalRounds: max(1, c.Step().Int("rounds", 1))}, Free: c.Step().Bool("free", false), Order: order(c)}
 	c.Set("chat.state", s)
 	if s.Free {
 		return
 	}
-	if len(c.Seats()) == 0 {
+	if len(s.Order) == 0 {
 		s.Done = true
 		return
 	}
-	s.PID = c.Seats()[0].ID
+	s.PID = s.Order[0]
 	start(c, s)
+}
+
+func order(c *engine.Ctx) []string {
+	var explicit []any
+	if v, ok := c.Step().Params["order_role_ids"].([]any); ok {
+		explicit = v
+	} else if v, ok := c.Step().Params["orderRoleIds"].([]any); ok {
+		explicit = v
+	}
+	var out []string
+	seen := map[string]bool{}
+	add := func(pid string) {
+		if !seen[pid] {
+			if seat := c.Seat(pid); seat != nil && seat.Joined {
+				seen[pid] = true
+				out = append(out, pid)
+			}
+		}
+	}
+	for _, v := range explicit {
+		if pid, ok := v.(string); ok {
+			add(pid)
+		}
+	}
+	if len(out) == 0 {
+		for _, seat := range c.Seats() {
+			if !seen[seat.ID] {
+				seen[seat.ID] = true
+				out = append(out, seat.ID)
+			}
+		}
+	}
+	if c.Step().Str("order", "") == "random" {
+		c.Shuffle(len(out), func(i, j int) { out[i], out[j] = out[j], out[i] })
+	}
+	return out
 }
 
 func allowed(c *engine.Ctx, pid string) []engine.ActionSpec {
@@ -119,16 +172,16 @@ func say(c *engine.Ctx, a engine.Action) error {
 
 func next(c *engine.Ctx, s *state) {
 	s.Index++
-	if s.Index == len(c.Seats()) {
+	if s.Index >= len(s.Order) {
 		s.Index = 0
 		s.Round++
 	}
-	if s.Round > s.TotalRounds {
+	if s.Round > s.TotalRounds || len(s.Order) == 0 {
 		s.Done = true
 		s.PID = ""
 		return
 	}
-	s.PID = c.Seats()[s.Index].ID
+	s.PID = s.Order[s.Index]
 	start(c, s)
 }
 

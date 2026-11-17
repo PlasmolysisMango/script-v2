@@ -9,27 +9,79 @@ import (
 )
 
 type Package struct {
-	Meta       Meta        `json:"meta"`
-	Characters []Character `json:"characters"`
-	Acts       []Act       `json:"acts"`
-	Locations  []Location  `json:"locations"`
-	Clues      []Clue      `json:"clues"`
-	Flow       []Step      `json:"flow"`
-	Votes      []Vote      `json:"votes"`
-	Endings    []Ending    `json:"endings"`
-	Truth      string      `json:"truth"`
+	Meta          Meta        `json:"meta"`
+	Characters    []Character `json:"characters"`
+	Acts          []Act       `json:"acts"`
+	Locations     []Location  `json:"locations"`
+	Clues         []Clue      `json:"clues"`
+	Flow          []Step      `json:"flow"`
+	Votes         []Vote      `json:"votes"`
+	Endings       []Ending    `json:"endings"`
+	Truth         string      `json:"truth"`
+	HostFacts     []Fact      `json:"host_facts,omitempty"`
+	TruthCases    []Case      `json:"truth_cases,omitempty"`
+	KillerRoleIDs []string    `json:"killer_role_ids,omitempty"`
+	KillerKind    string      `json:"killer_kind,omitempty"`
+	KillerName    string      `json:"killer_name,omitempty"`
+	CardGame      *CardGame   `json:"card_game,omitempty"`
 }
 
 type Meta struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Players     int    `json:"players"`
-	Lang        string `json:"lang"`
-	Intro       string `json:"intro"`
-	Rules       string `json:"rules,omitempty"`
-	Credits     string `json:"credits,omitempty"`
-	Source      string `json:"source,omitempty"`
-	LicenseNote string `json:"license_note,omitempty"`
+	ID          string   `json:"id"`
+	Title       string   `json:"title"`
+	Players     int      `json:"players"`
+	Lang        string   `json:"lang"`
+	Intro       string   `json:"intro"`
+	Rules       string   `json:"rules,omitempty"`
+	Credits     string   `json:"credits,omitempty"`
+	Source      string   `json:"source,omitempty"`
+	LicenseNote string   `json:"license_note,omitempty"`
+	Series      string   `json:"series,omitempty"`
+	Author      string   `json:"author,omitempty"`
+	Difficulty  string   `json:"difficulty,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
+	DurationMin int      `json:"duration_min,omitempty"`
+	PointsLabel string   `json:"points_label,omitempty"`
+	HidePoints  bool     `json:"hide_points,omitempty"`
+	StartPoints int      `json:"start_points,omitempty"`
+}
+
+type Fact struct {
+	ID   string `json:"id"`
+	Text string `json:"text"`
+}
+
+type Case struct {
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	PhaseID       string   `json:"phase_id,omitempty"`
+	KillerRoleIDs []string `json:"killer_role_ids,omitempty"`
+	Method        string   `json:"method,omitempty"`
+	Motive        string   `json:"motive,omitempty"`
+}
+
+type CardGame struct {
+	Deal       int        `json:"deal"`
+	Points     []int      `json:"points"`
+	KillerRank int        `json:"killer_rank"`
+	Cards      []Card     `json:"cards"`
+	Words      []CardWord `json:"words"`
+}
+
+type Card struct {
+	ID     string `json:"id"`
+	Kind   string `json:"kind"`
+	Color  string `json:"color,omitempty"`
+	Number int    `json:"number,omitempty"`
+	Title  string `json:"title,omitempty"`
+	Text   string `json:"text,omitempty"`
+	First  bool   `json:"first,omitempty"`
+}
+
+type CardWord struct {
+	RoleID string `json:"role_id"`
+	Word   string `json:"word"`
+	Open   bool   `json:"open,omitempty"`
 }
 
 type Voice struct {
@@ -56,6 +108,24 @@ type Character struct {
 	Ability     string    `json:"ability,omitempty"`
 	CanLie      bool      `json:"can_lie"`
 	IsCulprit   bool      `json:"is_culprit"`
+	Points      int       `json:"points,omitempty"`
+	Floor       string    `json:"floor,omitempty"`
+	Letter      string    `json:"letter,omitempty"`
+	Skill       *Skill    `json:"skill,omitempty"`
+}
+
+type Skill struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Text         string `json:"text"`
+	Effect       string `json:"effect"`
+	Cost         int    `json:"cost,omitempty"`
+	ExactCost    int    `json:"exact_cost,omitempty"`
+	AllCost      bool   `json:"all_cost,omitempty"`
+	Value        int    `json:"value,omitempty"`
+	Target       string `json:"target,omitempty"`
+	TargetRoleID string `json:"target_role_id,omitempty"`
+	Public       bool   `json:"public,omitempty"`
 }
 
 type Act struct {
@@ -75,13 +145,29 @@ type Unlock struct {
 }
 
 type Clue struct {
-	ID         string  `json:"id"`
-	Location   string  `json:"location"`
-	Title      string  `json:"title,omitempty"`
-	Body       string  `json:"body"`
-	Act        int     `json:"act"`
-	Visibility string  `json:"visibility"` // private | public
-	Unlock     *Unlock `json:"unlock,omitempty"`
+	ID            string   `json:"id"`
+	Location      string   `json:"location,omitempty"`
+	Title         string   `json:"title,omitempty"`
+	Body          string   `json:"body"`
+	Act           int      `json:"act"`
+	Visibility    string   `json:"visibility"` // private | public
+	Unlock        *Unlock  `json:"unlock,omitempty"`
+	Kind          string   `json:"kind,omitempty"`
+	Color         string   `json:"color,omitempty"`
+	Back          string   `json:"back,omitempty"`
+	Floor         string   `json:"floor,omitempty"`
+	ImageURL      string   `json:"image_url,omitempty"`
+	OwnerRoleID   string   `json:"owner_role_id,omitempty"`
+	SubjectRoleID string   `json:"subject_role_id,omitempty"`
+	Keywords      []string `json:"keywords,omitempty"`
+	KeywordsAll   bool     `json:"keywords_all,omitempty"`
+	MustReveal    bool     `json:"must_reveal,omitempty"`
+	RequiresItems []string `json:"requires_items,omitempty"`
+	UnlockedBy    []string `json:"unlocked_by,omitempty"`
+	GrantsItem    string   `json:"grants_item,omitempty"`
+	GrantsClue    []string `json:"grants_clue,omitempty"`
+	ExtraDraw     bool     `json:"extra_draw,omitempty"`
+	Number        int      `json:"number,omitempty"`
 }
 
 type Step struct {
@@ -117,16 +203,26 @@ func (s Step) Bool(key string, def bool) bool {
 }
 
 type Vote struct {
-	ID       string `json:"id"`
-	Question string `json:"question"`
-	Options  string `json:"options"` // "characters"
-	Correct  string `json:"correct,omitempty"`
+	ID           string       `json:"id"`
+	Question     string       `json:"question"`
+	Options      string       `json:"options"` // "characters", "options", "characters+abstain"
+	OptionList   []VoteOption `json:"option_list,omitempty"`
+	Correct      string       `json:"correct,omitempty"`
+	Corrects     []string     `json:"corrects,omitempty"`
+	AllowAbstain bool         `json:"allow_abstain,omitempty"`
+	PhaseID      string       `json:"phase_id,omitempty"`
+}
+
+type VoteOption struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
 }
 
 type Ending struct {
-	When  map[string]string `json:"when"` // vote id -> "correct" | "wrong" | "*"
+	When  map[string]string `json:"when"` // vote id -> "correct" | "wrong" | "*" | "winner:<value>"
 	Title string            `json:"title"`
 	Text  string            `json:"text"`
+	ID    string            `json:"id,omitempty"`
 }
 
 func Load(path string) (*Package, error) {
@@ -230,11 +326,17 @@ func (p *Package) Validate() error {
 		if (c.Act != 0 || len(p.Acts) > 1) && !acts[c.Act] {
 			bad("clue %s: unknown act %d", c.ID, c.Act)
 		}
-		if !locs[c.Location] {
+		if !locs[c.Location] && c.Location != "" {
 			bad("clue %s: unknown location %q", c.ID, c.Location)
 		}
 		if c.Visibility != "private" && c.Visibility != "public" {
 			bad("clue %s: bad visibility %q", c.ID, c.Visibility)
+		}
+	}
+	items := map[string]bool{}
+	for _, c := range p.Clues {
+		if c.GrantsItem != "" {
+			items[c.GrantsItem] = true
 		}
 	}
 	steps := map[string]bool{}
@@ -278,14 +380,69 @@ func (p *Package) Validate() error {
 			bad("clue %s: requires unknown phase %q", c.ID, c.Unlock.RequiresPhase)
 		}
 	}
+	for _, c := range p.Clues {
+		if c.OwnerRoleID != "" && !chars[c.OwnerRoleID] {
+			bad("clue %s: unknown owner role %q", c.ID, c.OwnerRoleID)
+		}
+		if c.SubjectRoleID != "" && !chars[c.SubjectRoleID] {
+			bad("clue %s: unknown subject role %q", c.ID, c.SubjectRoleID)
+		}
+		for _, id := range c.UnlockedBy {
+			if !clues[id] {
+				bad("clue %s: unlocked by unknown clue %q", c.ID, id)
+			}
+		}
+		for _, id := range c.GrantsClue {
+			if !clues[id] {
+				bad("clue %s: grants unknown clue %q", c.ID, id)
+			}
+		}
+		for _, item := range c.RequiresItems {
+			if !items[item] {
+				bad("clue %s: requires unknown item %q", c.ID, item)
+			}
+		}
+	}
 	votes := map[string]bool{}
 	for _, v := range p.Votes {
 		if v.ID == "" || votes[v.ID] {
 			bad("vote id %q empty or duplicated", v.ID)
 		}
 		votes[v.ID] = true
-		if v.Correct != "" && v.Options == "characters" && !chars[v.Correct] {
-			bad("vote %s: correct answer %q is not a character", v.ID, v.Correct)
+		corrects := append([]string{}, v.Corrects...)
+		if v.Correct != "" {
+			corrects = append(corrects, v.Correct)
+		}
+		for _, correct := range corrects {
+			if v.Options == "characters" && !chars[correct] {
+				bad("vote %s: correct answer %q is not a character", v.ID, correct)
+			}
+			if len(v.OptionList) > 0 {
+				found := false
+				for _, o := range v.OptionList {
+					if o.Value == correct {
+						found = true
+					}
+				}
+				if !found {
+					bad("vote %s: correct answer %q is not an option", v.ID, correct)
+				}
+			}
+		}
+	}
+	for _, tc := range p.TruthCases {
+		for _, id := range tc.KillerRoleIDs {
+			if !chars[id] {
+				bad("case %s: unknown killer role %q", tc.ID, id)
+			}
+		}
+		if tc.PhaseID != "" && !steps[tc.PhaseID] {
+			bad("case %s: unknown phase %q", tc.ID, tc.PhaseID)
+		}
+	}
+	for _, id := range p.KillerRoleIDs {
+		if !chars[id] {
+			bad("truth: unknown killer role %q", id)
 		}
 	}
 	for _, e := range p.Endings {

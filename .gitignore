@@ -6,4 +6,4 @@ web/*.tsbuildinfo
 web/*.js
 web/*.d.ts
 e2e/artifacts/
-scripts/eastern-star/
+/jbs

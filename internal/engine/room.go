@@ -2,10 +2,12 @@ package engine
 
 import (
 	"context"
-	"crypto/rand"
+	cryptorand "crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash/fnv"
+	"math/rand/v2"
 	"slices"
 	"sync"
 	"time"
@@ -73,6 +75,7 @@ type Room struct {
 	st    *State
 	store Store
 	inbox chan func()
+	rng   *rand.Rand
 
 	advance   bool
 	gotoStep  string
@@ -96,9 +99,12 @@ func NewRoom(id string, pkg *script.Package, reg *Registry, store Store) (*Room,
 	for _, ch := range pkg.Characters {
 		st.Seats = append(st.Seats, &Seat{ID: ch.ID, CharName: ch.Name, PublicIntro: ch.PublicIntro})
 	}
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(id))
+	seed := h.Sum64()
 	r := &Room{
 		ID: id, HostToken: NewToken(), Created: time.Now(),
-		reg: reg, st: st, store: store,
+		reg: reg, st: st, store: store, rng: rand.New(rand.NewPCG(seed, seed>>32)),
 		inbox: make(chan func(), 256), subs: map[*Sub]struct{}{}, notify: make(chan struct{}), stop: make(chan struct{}),
 	}
 	go r.run()
@@ -113,7 +119,7 @@ func NewRoom(id string, pkg *script.Package, reg *Registry, store Store) (*Room,
 
 func NewToken() string {
 	b := make([]byte, 16)
-	_, _ = rand.Read(b)
+	_, _ = cryptorand.Read(b)
 	return hex.EncodeToString(b)
 }
 

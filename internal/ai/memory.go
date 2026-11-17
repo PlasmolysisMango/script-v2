@@ -39,7 +39,7 @@ type memory struct {
 
 func (m *memory) ingest(events []engine.Event, through int64) {
 	for _, e := range events {
-		if e.Seq <= m.since || e.Seq > through || (!e.Public && e.Type != "pm.send") {
+		if e.Seq <= m.since || e.Seq > through || (!e.Public && !privateToSeat(e.Type)) {
 			continue
 		}
 		switch e.Type {
@@ -50,11 +50,63 @@ func (m *memory) ingest(events []engine.Event, through int64) {
 			}
 		case "chat.pass":
 			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: "暂不发言"})
+		case "clue.found", "clue.published", "clue.public":
+			text := strings.TrimSpace("线索《" + e.Str("title") + "》：" + e.Str("text"))
+			if text != "线索《》：" {
+				m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: clip(text, 2000)})
+			}
+		case "item.granted":
+			if item := e.Str("item"); item != "" {
+				m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: "获得道具：" + item})
+			}
+		case "dice.round":
+			b, _ := json.Marshal(e.Payload)
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: clip("掷骰："+string(b), 1000)})
+		case "dice.question":
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: "提问：" + e.Str("question")})
+		case "dice.answer":
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: "回答：" + e.Str("text")})
+		case "card.deal":
+			b, _ := json.Marshal(e.Payload)
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: clip("发牌："+string(b), 1000)})
+		case "card.play":
+			text := "出牌：" + e.Str("title")
+			if e.Str("kind") != "" {
+				text += "（" + e.Str("kind") + "）"
+			}
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: text})
+		case "card.clue":
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: "牌面线索《" + e.Str("title") + "》：" + e.Str("text")})
+		case "card.draw":
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: "摸牌：" + e.Str("title")})
+		case "card.score":
+			b, _ := json.Marshal(e.Payload)
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: clip("卡牌结算："+string(b), 1000)})
+		case "vote.cast":
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor,
+				Text: "你投票：" + e.Str("question") + " -> " + e.Str("option")})
+		case "vote.result":
+			b, _ := json.Marshal(e.Payload)
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: clip("投票结果："+string(b), 1000)})
+		case "points.settle":
+			b, _ := json.Marshal(e.Payload)
+			m.history = append(m.history, message{Seq: e.Seq, Type: e.Type, Actor: e.Actor, Text: clip("积分结算："+string(b), 1000)})
 		}
 	}
 	m.since = max(m.since, through)
 	for len(m.history) > 32 || (historyChars(m.history) > maxHistoryChars && len(m.history) > 1) {
 		m.history = m.history[1:]
+	}
+}
+
+// Some events are private to the requesting seat but still belong in that
+// seat's own memory. Log(pid) has already filtered every other seat out.
+func privateToSeat(typ string) bool {
+	switch typ {
+	case "pm.send", "clue.found", "item.granted", "card.draw", "vote.cast":
+		return true
+	default:
+		return false
 	}
 }
 

@@ -3,8 +3,11 @@ package vote
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"jbs/internal/engine"
+	"jbs/internal/plugins/points"
+	"jbs/internal/script"
 )
 
 type Plugin struct{}
@@ -17,15 +20,14 @@ type Question struct {
 
 type Result struct {
 	Question string         `json:"question"`
-	Counts   map[string]int `json:"counts"`
 	Winner   string         `json:"winner"`
+	Counts   map[string]int `json:"counts"`
 	Correct  bool           `json:"correct"`
 }
 
 type state struct {
 	Questions []Question
 	Cast      map[string]map[string]string
-	Results   []Result
 	Complete  bool
 }
 
@@ -33,18 +35,8 @@ func (Plugin) Name() string { return "vote" }
 func (Plugin) Init(r *engine.Registry) error {
 	r.PhaseType("vote", engine.PhaseType{
 		OnEnter: func(c *engine.Ctx) {
-			s := &state{Questions: []Question{}, Cast: map[string]map[string]string{}, Results: []Result{}}
-			for _, v := range c.Script().Votes {
-				q := Question{ID: v.ID, Question: v.Question, Options: []engine.Option{}}
-				if v.Options == "characters" || v.Options == "" {
-					for _, ch := range c.Script().Characters {
-						q.Options = append(q.Options, engine.Option{Value: ch.ID, Label: ch.Name})
-					}
-				}
-				s.Questions = append(s.Questions, q)
-			}
+			s := &state{Questions: questions(c), Cast: map[string]map[string]string{}}
 			c.Set("vote.state", s)
-			c.Set("vote.results", []Result{})
 			finish(c, s)
 		},
 		EndIf: func(c *engine.Ctx) bool { s := get(c); return s != nil && s.Complete },
@@ -59,7 +51,11 @@ func (Plugin) Init(r *engine.Registry) error {
 					questions = append(questions, engine.Option{Value: q.ID, Label: q.Question})
 				}
 			}
-			return []engine.ActionSpec{{Type: "vote.cast", Desc: "Cast a private vote", Params: map[string]string{"question": "Question ID", "option": "Option value"}, Options: questions}}
+			if len(questions) == 0 {
+				return nil
+			}
+			return []engine.ActionSpec{{Type: "vote.cast", Desc: "Cast a private vote",
+				Params: map[string]string{"question": "Question ID", "option": "Option value"}, Options: questions}}
 		},
 		Hint: func(_ *engine.Ctx, _ string) string {
 			return "Vote on every question. Choices remain private until everyone has voted."
@@ -80,9 +76,9 @@ func (Plugin) Init(r *engine.Registry) error {
 		for question, option := range s.Cast[pid] {
 			own[question] = option
 		}
-		v := map[string]any{"questions": s.Questions, "cast": own}
+		v := map[string]any{"questions": s.Questions, "cast": own, "history": Results(c)}
 		if s.Complete {
-			v["results"] = cloneResults(s.Results)
+			v["results"] = Results(c)
 		}
 		return "votes", v
 	})
@@ -91,6 +87,56 @@ func (Plugin) Init(r *engine.Registry) error {
 }
 
 func get(c *engine.Ctx) *state { s, _ := c.Get("vote.state").(*state); return s }
+
+func questions(c *engine.Ctx) []Question {
+	ids := paramList(c.Step().Params["vote_ids"])
+	if len(ids) == 0 {
+		ids = paramList(c.Step().Params["vote_ids"])
+	}
+	var selected []script.Vote
+	for _, v := range c.Script().Votes {
+		if len(ids) == 0 || slices.Contains(ids, v.ID) || v.PhaseID == c.PhaseID() {
+			selected = append(selected, v)
+		}
+	}
+	if len(selected) == 0 && c.Step().Str("vote_prompt", "") != "" {
+		selected = append(selected, script.Vote{ID: c.PhaseID(), Question: c.Step().Str("vote_prompt", ""), Options: "characters"})
+	}
+	last := points.LastPenalized(c)
+	var out []Question
+	for _, v := range selected {
+		q := Question{ID: v.ID, Question: v.Question}
+		if v.Question == "" {
+			q.Question = v.ID
+		}
+		if len(v.OptionList) > 0 {
+			excludeLast := last != "" && strings.Contains(v.Question, "侍寝")
+			for _, o := range v.OptionList {
+				if excludeLast && o.Value == last {
+					continue
+				}
+				q.Options = append(q.Options, engine.Option{Value: o.Value, Label: o.Label})
+			}
+		} else {
+			excluded := map[string]bool{}
+			for _, id := range paramList(c.Step().Params["exclude_role_ids"]) {
+				excluded[id] = true
+			}
+			for _, ch := range c.Script().Characters {
+				if !excluded[ch.ID] {
+					q.Options = append(q.Options, engine.Option{Value: ch.ID, Label: ch.Name})
+				}
+			}
+		}
+		if v.AllowAbstain || v.Options == "characters+abstain" || c.Step().Str("votePrompt", "") != "" || len(v.OptionList) > 0 {
+			if !slices.ContainsFunc(q.Options, func(o engine.Option) bool { return o.Value == "abstain" }) {
+				q.Options = append(q.Options, engine.Option{Value: "abstain", Label: "弃权"})
+			}
+		}
+		out = append(out, q)
+	}
+	return out
+}
 
 func cast(c *engine.Ctx, a engine.Action) error {
 	s := get(c)
@@ -130,6 +176,7 @@ func finish(c *engine.Ctx, s *state) {
 		}
 	}
 	s.Complete = true
+	all := Results(c)
 	for _, q := range s.Questions {
 		result := Result{Question: q.ID, Counts: map[string]int{}}
 		for _, option := range q.Options {
@@ -150,23 +197,36 @@ func finish(c *engine.Ctx, s *state) {
 		if tied {
 			result.Winner = ""
 		}
-		for _, v := range c.Script().Votes {
-			if v.ID == q.ID {
-				result.Correct = v.Correct != "" && result.Winner == v.Correct
+		var def *script.Vote
+		for i := range c.Script().Votes {
+			if c.Script().Votes[i].ID == q.ID {
+				def = &c.Script().Votes[i]
 				break
 			}
 		}
-		s.Results = append(s.Results, result)
-	}
-	c.Set("vote.results", cloneResults(s.Results))
-	for _, result := range s.Results {
+		if def != nil && result.Winner != "" && result.Winner != "abstain" {
+			if result.Winner == def.Correct || slices.Contains(def.Corrects, result.Winner) {
+				result.Correct = true
+			}
+		}
+		all = append(all, result)
 		c.Emit("vote.result", "", engine.Public(), map[string]any{
 			"question": result.Question, "counts": cloneCounts(result.Counts), "winner": result.Winner, "correct": result.Correct,
 		})
+		if result.Winner != "" && result.Winner != "abstain" && c.Seat(result.Winner) != nil {
+			if n := c.Step().Int("penalty", 0); n > 0 {
+				points.Adjust(c, result.Winner, -n)
+				points.SetLastPenalized(c, result.Winner)
+			}
+			if n := c.Step().Int("reward", 0); n > 0 {
+				points.Adjust(c, result.Winner, n)
+			}
+		}
 	}
+	c.Set("vote.results", all)
 }
 
-// Results returns completed results, without sharing mutable state with callers.
+// Results returns cumulative results across all vote phases, without sharing mutable state.
 func Results(c *engine.Ctx) []Result {
 	results, _ := c.Get("vote.results").([]Result)
 	return cloneResults(results)
@@ -185,6 +245,25 @@ func cloneCounts(counts map[string]int) map[string]int {
 	out := map[string]int{}
 	for option, n := range counts {
 		out[option] = n
+	}
+	return out
+}
+
+func paramList(v any) []string {
+	var out []string
+	switch x := v.(type) {
+	case []any:
+		for _, item := range x {
+			if s, ok := item.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+	case []string:
+		out = append(out, x...)
+	case string:
+		if x != "" {
+			out = append(out, x)
+		}
 	}
 	return out
 }

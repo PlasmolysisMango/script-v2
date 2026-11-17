@@ -1,0 +1,92 @@
+{
+  "meta": {
+    "title": "导入测试",
+    "summary": "用于导入器测试的虚构剧本。",
+    "author": "测试作者",
+    "series": "测试系列",
+    "difficulty": "简单",
+    "tags": ["测试", "导入"],
+    "durationMin": 60,
+    "pointsLabel": "积分",
+    "hidePoints": true,
+    "startPoints": 5,
+    "playerCount": {"max": 2}
+  },
+  "roles": [
+    {
+      "id": "r_a",
+      "name": "甲",
+      "public": {"intro": "公开介绍甲。", "appearance": "甲穿着长衣。"},
+      "private": {
+        "script": "## 序章\n第一幕之前的内容。\n\n## 第一幕\n甲的秘密行动发生在深夜。\n\n## 第二幕\n甲的后续行动。\n\n## 尾声\n甲的结局。"
+      },
+      "points": 3,
+      "skill": {"id": "s1", "name": "技能一", "text": "技能说明文本。", "effect": "grant_points", "cost": 1, "value": 2, "target": "other"}
+    },
+    {
+      "id": "r_b",
+      "name": "乙",
+      "public": {"intro": "公开介绍乙。"},
+      "private": {"script": "## 第一幕\n乙的秘密行动发生在深夜。"}
+    }
+  ],
+  "clues": [
+    {
+      "id": "c1",
+      "title": "公共线索",
+      "content": "人人都能调查到的线索。",
+      "isPublic": true,
+      "location": "大厅",
+      "imageUrl": "/script-assets/K1-测试/images/a.png"
+    },
+    {
+      "id": "c2",
+      "title": "人物线索",
+      "content": "甲的随身物品。",
+      "ownerRoleId": "r_a",
+      "location": "房间",
+      "unlockedBy": ["c1"],
+      "grantsItem": "钥匙"
+    },
+    {
+      "id": "c3",
+      "title": "道具线索",
+      "content": "需要钥匙打开的线索。",
+      "requiresItems": ["钥匙"],
+      "grantsClue": ["c4"]
+    },
+    {
+      "id": "c4",
+      "title": "奖励线索",
+      "content": "通过道具链获得的线索。",
+      "mustReveal": true
+    }
+  ],
+  "phases": [
+    {"id": "p1", "type": "reading", "name": "第一幕阅读", "dmScript": "主持人私密手稿"},
+    {"id": "p2", "type": "discussion", "name": "私聊", "speechPerPlayer": 2},
+    {"id": "p3", "type": "vote", "name": "投票", "votePrompt": "请指认杀害张三的凶手。", "timeoutSec": 60},
+    {"id": "p4", "type": "mystery", "name": "特殊环节"},
+    {"id": "p5", "type": "reveal", "name": "揭晓"}
+  ],
+  "truth": {
+    "summary": "真相摘要。",
+    "method": "手法说明。",
+    "motive": "动机说明。",
+    "timeline": ["20:00 案发"],
+    "killerRoleIds": ["r_a"],
+    "killerKind": "player",
+    "killerName": "甲",
+    "cases": [
+      {"id": "case1", "name": "张三案", "phaseId": "p3", "killerRoleIds": ["r_a"], "method": "刀伤", "motive": "债务"}
+    ],
+    "endings": [
+      {"id": "e1", "name": "甲被揭露", "text": "结局一", "killerRoleId": "r_a"},
+      {"id": "e0", "name": "未定罪", "text": "默认结局"}
+    ],
+    "defaultEndingId": "e0"
+  },
+  "facts": [
+    {"id": "f1", "text": "主持人事实"}
+  ]
+}

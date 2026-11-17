@@ -50,11 +50,17 @@ func (Plugin) Init(r *engine.Registry) error {
 		}
 		return "", nil
 	})
-	r.Panel(engine.Panel{ID: "privatechat", Plugin: "privatechat", Kind: "privatechat", Title: "Private messages", Phases: []string{"discussion", "search"}, DataKey: "privatechat", Order: 40})
+	r.Panel(engine.Panel{ID: "privatechat", Plugin: "privatechat", Kind: "privatechat", Title: "Private messages", Phases: []string{"discussion", "search", "whisper"}, DataKey: "privatechat", Order: 40})
 	return nil
 }
 
-func active(c *engine.Ctx) bool { return c.PhaseType() == "discussion" || c.PhaseType() == "search" }
+func active(c *engine.Ctx) bool {
+	switch c.PhaseType() {
+	case "discussion", "search", "whisper", "opening":
+		return true
+	}
+	return false
+}
 func targets(c *engine.Ctx, pid string) []engine.Option {
 	out := []engine.Option{}
 	for _, s := range c.Seats() {

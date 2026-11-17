@@ -22,6 +22,11 @@ import (
 )
 
 type AIStarter func(ctx context.Context, room *engine.Room, pid, provider string)
+type Options struct {
+	AssetsDir string
+	Strict    bool
+}
+
 type Server struct {
 	registry   *engine.Registry
 	scripts    map[string]*script.Package
@@ -29,32 +34,69 @@ type Server struct {
 	mu         sync.RWMutex
 	store      engine.Store
 	static     string
+	assetDir   string
 	ctx        context.Context
 	cancel     context.CancelFunc
 	StartAI    AIStarter
 	DefaultLLM string
 }
 
-func New(reg *engine.Registry, store engine.Store, scriptsDir, static string) (*Server, error) {
+func New(reg *engine.Registry, store engine.Store, scriptsDir, static string, options ...Options) (*Server, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &Server{registry: reg, store: store, static: static, scripts: map[string]*script.Package{}, rooms: map[string]*engine.Room{}, ctx: ctx, cancel: cancel, DefaultLLM: "mock"}
-	entries, err := os.ReadDir(scriptsDir)
+	var opts Options
+	if len(options) > 0 {
+		opts = options[0]
+	}
+	assetsDir := opts.AssetsDir
+	if assetsDir == "" {
+		assetsDir = filepath.Join(scriptsDir, "imported", "assets")
+		if filepath.Base(filepath.Clean(scriptsDir)) == "imported" {
+			assetsDir = filepath.Join(scriptsDir, "assets")
+		}
+	}
+	s := &Server{registry: reg, store: store, static: static, assetDir: assetsDir,
+		scripts: map[string]*script.Package{}, rooms: map[string]*engine.Room{}, ctx: ctx, cancel: cancel, DefaultLLM: "mock"}
+	var paths []string
+	err := filepath.WalkDir(scriptsDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if d.Name() == "assets" || d.Name() == "node_modules" || d.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if d.Name() == "script.json" {
+			paths = append(paths, path)
+		}
+		return nil
+	})
 	if err != nil {
 		cancel()
 		return nil, err
 	}
-	for _, e := range entries {
-		if !e.IsDir() {
+	for _, path := range paths {
+		p, err := script.Load(path)
+		if err != nil {
+			if opts.Strict {
+				cancel()
+				return nil, fmt.Errorf("load %s: %w", path, err)
+			}
+			log.Printf("skip script %s: %v", path, err)
 			continue
 		}
-		p, err := script.Load(filepath.Join(scriptsDir, e.Name()))
-		if err != nil {
-			cancel()
-			return nil, fmt.Errorf("load %s: %w", e.Name(), err)
-		}
 		if err = reg.CheckScript(p); err != nil {
-			cancel()
-			return nil, err
+			if opts.Strict {
+				cancel()
+				return nil, fmt.Errorf("%s: %w", path, err)
+			}
+			log.Printf("skip script %s: %v", path, err)
+			continue
+		}
+		if _, exists := s.scripts[p.Meta.ID]; exists {
+			log.Printf("duplicate script id %s at %s (ignored)", p.Meta.ID, path)
+			continue
 		}
 		s.scripts[p.Meta.ID] = p
 	}
@@ -82,6 +124,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/rooms/{room}/log", s.events)
 	mux.HandleFunc("POST /api/rooms/{room}/action", s.action)
 	mux.HandleFunc("GET /ws/rooms/{room}", s.ws)
+	mux.HandleFunc("GET /script-assets/", s.scriptAsset)
 	mux.HandleFunc("/", s.assets)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -401,6 +444,30 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+func (s *Server) scriptAsset(w http.ResponseWriter, r *http.Request) {
+	if s.assetDir == "" {
+		http.NotFound(w, r)
+		return
+	}
+	name := strings.TrimPrefix(r.URL.Path, "/script-assets/")
+	if name == "" {
+		http.NotFound(w, r)
+		return
+	}
+	clean := filepath.Clean("/" + name)
+	target := filepath.Join(s.assetDir, clean)
+	rel, err := filepath.Rel(s.assetDir, target)
+	if err != nil || strings.HasPrefix(rel, "..") || rel == "." {
+		http.NotFound(w, r)
+		return
+	}
+	if fi, err := os.Stat(target); err != nil || fi.IsDir() {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeFile(w, r, target)
+}
+
 func (s *Server) assets(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/ws/") {
 		http.NotFound(w, r)

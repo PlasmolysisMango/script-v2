@@ -1,6 +1,8 @@
 package reveal
 
 import (
+	"strings"
+
 	"jbs/internal/engine"
 	"jbs/internal/plugins/vote"
 )
@@ -17,22 +19,33 @@ type View struct {
 func (Plugin) Name() string { return "reveal" }
 func (Plugin) Init(r *engine.Registry) error {
 	r.PhaseType("reveal", engine.PhaseType{OnEnter: func(c *engine.Ctx) {
-		v := View{Truth: c.Script().Truth, Title: c.Step().Title, Results: vote.Results(c)}
-		outcomes := map[string]bool{}
-		for _, result := range v.Results {
-			outcomes[result.Question] = result.Correct
+		results := vote.Results(c)
+		v := View{Truth: c.Script().Truth, Title: c.Step().Title, Results: results}
+		outcomes := map[string]vote.Result{}
+		for _, result := range results {
+			outcomes[result.Question] = result
 		}
-		// Prefer specific matching endings over a wildcard fallback.
+		// Prefer specific matching endings over the empty fallback.
 		best := -1
 		for _, ending := range c.Script().Endings {
 			match, specificity := true, 0
 			for question, condition := range ending.When {
-				correct, exists := outcomes[question]
-				switch condition {
-				case "*":
-				case "correct", "wrong":
+				result, exists := outcomes[question]
+				switch {
+				case condition == "*":
+				case condition == "correct", condition == "wrong":
 					specificity++
-					if !exists || correct != (condition == "correct") {
+					if !exists || result.Correct != (condition == "correct") {
+						match = false
+					}
+				case strings.HasPrefix(condition, "winner:"):
+					specificity++
+					if result.Winner != strings.TrimPrefix(condition, "winner:") {
+						match = false
+					}
+				case strings.HasPrefix(condition, "option:"):
+					specificity++
+					if result.Winner != strings.TrimPrefix(condition, "option:") {
 						match = false
 					}
 				default:
@@ -43,8 +56,11 @@ func (Plugin) Init(r *engine.Registry) error {
 				best, v.Title, v.Text = specificity, ending.Title, ending.Text
 			}
 		}
+		if v.Text == v.Truth {
+			v.Text = ""
+		}
 		c.Set("reveal", v)
-		c.Emit("reveal", "", engine.Public(), map[string]any{"truth": v.Truth, "title": v.Title, "text": v.Text, "results": vote.Results(c)})
+		c.Emit("reveal", "", engine.Public(), map[string]any{"truth": v.Truth, "title": v.Title, "text": v.Text, "results": results})
 		for _, step := range c.Script().Flow {
 			if step.Type == "end" {
 				c.Goto(step.ID)

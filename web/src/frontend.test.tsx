@@ -358,7 +358,7 @@ describe('library and failure recovery', () => {
     fireEvent.click(screen.getByRole('button', { name: '查看角色 / 创建房间' }));
     fireEvent.change(screen.getByRole('textbox', { name: '你的称呼' }), { target: { value: '小林' } });
     fireEvent.click(screen.getByRole('button', { name: '创建并登船' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: '选择角色登船' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: '选择角色入座' })).toBeTruthy());
     expect(loadSession()).toEqual({ room_id: 'ocean', host_token: 'kept-host', token: undefined, player_id: undefined });
     expect(screen.getByRole('alert').textContent).toContain('主持凭证已保留');
     expect(screen.queryByText('你看见了一封信。')).toBeNull();

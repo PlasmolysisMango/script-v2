@@ -27,13 +27,13 @@ func (Plugin) Init(r *engine.Registry) error {
 		return nil
 	})
 	r.PhaseType("ready_check", engine.PhaseType{OnEnter: Reset, EndIf: AllReady, Allowed: Allowed, Hint: Hint})
-	r.Panel(engine.Panel{ID: "ready", Plugin: "ready", Kind: "ready", Title: "Ready", Phases: []string{"ready_check", "reading", "search"}, Order: 90})
+	r.Panel(engine.Panel{ID: "ready", Plugin: "ready", Kind: "ready", Title: "Ready", Phases: []string{"ready_check", "reading", "search", "opening", "whisper"}, Order: 90})
 	return nil
 }
 
 func supports(c *engine.Ctx) bool {
 	switch c.PhaseType() {
-	case "ready_check", "reading", "search":
+	case "ready_check", "reading", "search", "opening", "whisper", "whisper_check":
 		return true
 	case "intro", "discussion":
 		return c.Step().Bool("free", false)

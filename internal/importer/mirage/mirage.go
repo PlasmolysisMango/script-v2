@@ -33,7 +33,7 @@ func Import(dir, truthPath, culprit string) (*script.Package, error) {
 	if len(chars) != 5 {
 		return nil, fmt.Errorf("Eastern Star needs 5 characters, got %d", len(chars))
 	}
-	p := &script.Package{Meta: script.Meta{ID: "eastern-star", Title: "东方之星号游轮事件", Players: 5, Lang: "zh-CN", Intro: "东方之星号豪华游轮即将抵达港口。烟花表演后，大副刘奇被发现死在仓库。案发时，五位船员各有不能告人的秘密。找出致命的一击，还原今晚的真相。", Rules: "只有凶手可以说谎。其他玩家可以隐瞒不利事实，但不能编造。搜到的线索先归自己，可在讨论时主动公开。", Credits: "原作：比格沃斯大呆侠；结构化数据：MIRAGE (arXiv 2501.01652)", Source: "https://github.com/lime728/MIRAGE", LicenseNote: "MIRAGE 未声明数据许可证；该剧本仅用于内部研究测试，不应再分发或销售。"}, Acts: []script.Act{{ID: 1, Title: "游轮之夜"}}, Truth: truths["东方之星号游轮事件"]}
+	p := &script.Package{Meta: script.Meta{ID: "eastern-star", Title: "东方之星号游轮事件", Players: 5, Lang: "zh-CN", Intro: "东方之星号豪华游轮即将抵达港口。烟花表演后，大副刘奇被发现死在仓库。案发时，五位船员各有不能告人的秘密。找出致命的一击，还原今晚的真相。", Rules: "只有凶手可以说谎。其他玩家可以隐瞒不利事实，但不能编造。搜到的线索先归自己，可在讨论时主动公开。", Credits: "原作：比格沃斯大呆侠；结构化数据：MIRAGE (arXiv 2501.01652)", Source: "https://github.com/lime728/MIRAGE", LicenseNote: "由仓库维护者提供；维护者确认已合法取得并同意在本仓库提交与发布。MIRAGE 未声明数据许可证，版权归原权利人，如有异议请联系删除。"}, Acts: []script.Act{{ID: 1, Title: "游轮之夜"}}, Truth: truths["东方之星号游轮事件"]}
 	for _, name := range order {
 		fields, ok := chars[name]
 		if !ok {

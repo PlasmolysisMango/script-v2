@@ -64,7 +64,17 @@ type ActionSpec struct {
 	Desc     string            `json:"desc"`
 	Params   map[string]string `json:"params,omitempty"`
 	Options  []Option          `json:"options,omitempty"`
+	Fields   []Field           `json:"fields,omitempty"`
 	Optional bool              `json:"optional,omitempty"`
+}
+
+type Field struct {
+	Key         string   `json:"key"`
+	Label       string   `json:"label,omitempty"`
+	Kind        string   `json:"kind,omitempty"` // select | text | number
+	Options     []Option `json:"options,omitempty"`
+	Required    bool     `json:"required,omitempty"`
+	Placeholder string   `json:"placeholder,omitempty"`
 }
 
 type Action struct {
@@ -112,13 +122,14 @@ type Hooks struct {
 }
 
 type Panel struct {
-	ID      string   `json:"id"`
-	Plugin  string   `json:"plugin"`
-	Kind    string   `json:"kind"`
-	Title   string   `json:"title"`
-	Phases  []string `json:"phases,omitempty"` // phase types; empty = always
-	DataKey string   `json:"data_key,omitempty"`
-	Order   int      `json:"order"`
+	ID       string   `json:"id"`
+	Plugin   string   `json:"plugin"`
+	Kind     string   `json:"kind"`
+	Title    string   `json:"title"`
+	Phases   []string `json:"phases,omitempty"` // phase types; empty = always
+	DataKey  string   `json:"data_key,omitempty"`
+	Order    int      `json:"order"`
+	HostOnly bool     `json:"host_only,omitempty"`
 }
 
 type ViewFn func(c *Ctx, pid string) (key string, v any)

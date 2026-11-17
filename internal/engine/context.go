@@ -21,6 +21,15 @@ func (c *Ctx) PhaseID() string         { return c.Step().ID }
 func (c *Ctx) Act() int                { return c.Step().Int("act", 1) }
 func (c *Ctx) Get(key string) any      { return c.r.st.Ext[key] }
 func (c *Ctx) Set(key string, v any)   { c.r.st.Ext[key] = v }
+func (c *Ctx) Intn(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	return c.r.rng.IntN(n)
+}
+func (c *Ctx) Shuffle(n int, swap func(i, j int)) {
+	c.r.rng.Shuffle(n, swap)
+}
 func (c *Ctx) AllJoined() bool {
 	return len(c.Seats()) > 0 && !slices.ContainsFunc(c.Seats(), func(s *Seat) bool { return !s.Joined })
 }
@@ -178,6 +187,9 @@ func (r *Room) view(c *Ctx, pid string) View {
 		}
 	}
 	for _, p := range r.reg.panels {
+		if p.HostOnly && pid != HostID {
+			continue
+		}
 		if len(p.Phases) == 0 || slices.Contains(p.Phases, s.Type) {
 			v.Panels = append(v.Panels, p)
 		}

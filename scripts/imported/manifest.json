@@ -1,0 +1,659 @@
+{
+  "imported_at": "2026-11-17T15:05:54Z",
+  "root": "scripts",
+  "scripts": [
+    {
+      "id": "ai01",
+      "title": "第六次谢幕",
+      "source_dir": "AI-01-第六次谢幕",
+      "characters": 6,
+      "clues": 56,
+      "phases": 13,
+      "phase_types": {
+        "discussion": 4,
+        "reading": 3,
+        "reveal": 1,
+        "search": 3,
+        "vote": 2
+      },
+      "votes": 2,
+      "endings": 1,
+      "assets": [
+        "/script-assets/AI-01-第六次谢幕/images/child-drawing.png",
+        "/script-assets/AI-01-第六次谢幕/images/floorplan.png",
+        "/script-assets/AI-01-第六次谢幕/images/group-photo.png",
+        "/script-assets/AI-01-第六次谢幕/images/stage.png"
+      ]
+    },
+    {
+      "id": "ai02",
+      "title": "灯岬",
+      "source_dir": "AI-02-灯岬",
+      "characters": 6,
+      "clues": 56,
+      "phases": 13,
+      "phase_types": {
+        "discussion": 4,
+        "reading": 3,
+        "reveal": 1,
+        "search": 3,
+        "vote": 2
+      },
+      "votes": 2,
+      "endings": 1,
+      "assets": [
+        "/script-assets/AI-02-灯岬/images/island-map.png",
+        "/script-assets/AI-02-灯岬/images/six-eulogies.png",
+        "/script-assets/AI-02-灯岬/images/storm-lighthouse.png",
+        "/script-assets/AI-02-灯岬/images/toolbox.png"
+      ]
+    },
+    {
+      "id": "aofu",
+      "title": "持斧奥夫",
+      "source_dir": "AOFU-持斧奥夫",
+      "characters": 7,
+      "clues": 46,
+      "phases": 11,
+      "phase_types": {
+        "discussion": 6,
+        "reading": 1,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/AOFU-持斧奥夫/audio/letter.mp3",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-01.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-02.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-03.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-04.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-05.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-06.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-07.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-08.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-09.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-10.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-11.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-12.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-13.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-14.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-15.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-16.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-17.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-18.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-19.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-20.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-21.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-22.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-23.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-24.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-25.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-26.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-27.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-28.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-29.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-30.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-31.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-32.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-33.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-34.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-35.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-36.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-37.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-38.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-39.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-40.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-41.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-42.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-43.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-44.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-45.jpg",
+        "/script-assets/AOFU-持斧奥夫/images/clues/aofu-46.jpg"
+      ],
+      "adapted": [
+        "旁白角色 r_narrator 接收本阶段剩余线索；信件音频作为本地资产提供。"
+      ]
+    },
+    {
+      "id": "k1",
+      "title": "游轮迷影",
+      "source_dir": "K1-游轮迷影",
+      "characters": 6,
+      "clues": 58,
+      "phases": 10,
+      "phase_types": {
+        "discussion": 3,
+        "reading": 1,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1,
+        "whisper": 2
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K1-游轮迷影/images/deck-plan.jpg"
+      ]
+    },
+    {
+      "id": "k10",
+      "title": "梁溪诡影",
+      "source_dir": "K10-梁溪诡影",
+      "characters": 5,
+      "clues": 70,
+      "phases": 13,
+      "phase_types": {
+        "discussion": 6,
+        "reading": 1,
+        "reveal": 1,
+        "search": 3,
+        "vote": 1,
+        "whisper": 1
+      },
+      "votes": 1,
+      "endings": 6,
+      "assets": [
+        "/script-assets/K10-梁溪诡影/images/map.jpg"
+      ]
+    },
+    {
+      "id": "k11",
+      "title": "再见苏西",
+      "source_dir": "K11-再见苏西",
+      "characters": 5,
+      "clues": 88,
+      "phases": 10,
+      "phase_types": {
+        "discussion": 3,
+        "reading": 1,
+        "reveal": 1,
+        "search": 3,
+        "vote": 1,
+        "whisper": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K11-再见苏西/images/map.jpg"
+      ]
+    },
+    {
+      "id": "k12",
+      "title": "娘娘千岁",
+      "source_dir": "K12-娘娘千岁",
+      "characters": 5,
+      "clues": 84,
+      "phases": 18,
+      "phase_types": {
+        "discussion": 2,
+        "opening": 1,
+        "reading": 1,
+        "reveal": 1,
+        "search": 5,
+        "vote": 7,
+        "whisper": 1
+      },
+      "votes": 7,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K12-娘娘千岁/images/map.jpg"
+      ],
+      "adapted": [
+        "侍寝投票自动排除皇后；被罚者与侍寝结果由线上积分与宿主面板近似。",
+        "多轮投票、罚赏与恩宠结算按线上 points/vote 实现，废后与冷宫由宿主裁定。"
+      ]
+    },
+    {
+      "id": "k13",
+      "title": "群星落幕时",
+      "source_dir": "K13-群星落幕时",
+      "characters": 3,
+      "clues": 50,
+      "phases": 11,
+      "phase_types": {
+        "dice": 1,
+        "discussion": 3,
+        "reading": 1,
+        "reveal": 1,
+        "search": 4,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K13-群星落幕时/images/star-map.jpg"
+      ],
+      "adapted": [
+        "20 轮骰子由系统自动掷骰并按 tieBreak 加权，提问/回答公开记录。",
+        "关键词必答由系统校验；主持人追问与违规裁定由宿主旁白兜底。"
+      ]
+    },
+    {
+      "id": "k14",
+      "title": "动物监友会",
+      "source_dir": "K14-动物监友会",
+      "characters": 5,
+      "clues": 59,
+      "phases": 9,
+      "phase_types": {
+        "discussion": 4,
+        "reading": 1,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K14-动物监友会/images/map-back.jpg",
+        "/script-assets/K14-动物监友会/images/map-front.jpg"
+      ]
+    },
+    {
+      "id": "k15",
+      "title": "屠龙之证",
+      "source_dir": "K15-屠龙之证",
+      "characters": 5,
+      "clues": 40,
+      "phases": 8,
+      "phase_types": {
+        "discussion": 3,
+        "reading": 1,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1
+    },
+    {
+      "id": "k16",
+      "title": "血色唐人街",
+      "source_dir": "K16-血色唐人街",
+      "characters": 6,
+      "clues": 49,
+      "phases": 8,
+      "phase_types": {
+        "discussion": 3,
+        "reading": 1,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K16-血色唐人街/images/district-map.jpg",
+        "/script-assets/K16-血色唐人街/images/floor-plan.jpg",
+        "/script-assets/K16-血色唐人街/images/relationship.jpg"
+      ]
+    },
+    {
+      "id": "k17",
+      "title": "临渊客栈",
+      "source_dir": "K17-临渊客栈",
+      "characters": 6,
+      "clues": 55,
+      "phases": 11,
+      "phase_types": {
+        "discussion": 5,
+        "reading": 1,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1,
+        "whisper": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K17-临渊客栈/images/clue-002.jpg",
+        "/script-assets/K17-临渊客栈/images/clue-010.jpg",
+        "/script-assets/K17-临渊客栈/images/clue-020.jpg",
+        "/script-assets/K17-临渊客栈/images/clue-035.jpg",
+        "/script-assets/K17-临渊客栈/images/floor-plan.jpg",
+        "/script-assets/K17-临渊客栈/images/relationship-r_an.jpg",
+        "/script-assets/K17-临渊客栈/images/relationship-r_lin.jpg",
+        "/script-assets/K17-临渊客栈/images/relationship-r_qiu.jpg",
+        "/script-assets/K17-临渊客栈/images/relationship-r_ye.jpg",
+        "/script-assets/K17-临渊客栈/images/relationship-r_yi.jpg",
+        "/script-assets/K17-临渊客栈/images/relationship-r_yun.jpg"
+      ]
+    },
+    {
+      "id": "k18",
+      "title": "谁与争疯",
+      "source_dir": "K18-谁与争疯",
+      "characters": 5,
+      "clues": 15,
+      "phases": 10,
+      "phase_types": {
+        "discussion": 6,
+        "reading": 1,
+        "reveal": 1,
+        "search": 1,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "adapted": [
+        "NPC 凶手「阿飞」不占用玩家座位，投票仍指认玩家角色。"
+      ]
+    },
+    {
+      "id": "k19",
+      "title": "生日快乐",
+      "source_dir": "K19-生日快乐",
+      "characters": 5,
+      "clues": 0,
+      "phases": 4,
+      "phase_types": {
+        "cards": 2,
+        "reading": 1,
+        "reveal": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "adapted": [
+        "135 张牌按 27 张/人发牌，出牌与计分由 cards 插件实现。",
+        "UNO 式边界与技能牌结算为线上近似，最终由宿主裁定。"
+      ]
+    },
+    {
+      "id": "k2",
+      "title": "黑夜传说",
+      "source_dir": "K2-黑夜传说",
+      "characters": 7,
+      "clues": 31,
+      "phases": 13,
+      "phase_types": {
+        "discussion": 4,
+        "opening": 2,
+        "reading": 2,
+        "reveal": 1,
+        "search": 3,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1
+    },
+    {
+      "id": "k21",
+      "title": "迷失航班",
+      "source_dir": "K21-迷失航班",
+      "characters": 5,
+      "clues": 40,
+      "phases": 9,
+      "phase_types": {
+        "discussion": 4,
+        "reading": 1,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1
+    },
+    {
+      "id": "k22",
+      "title": "妖猫出长安",
+      "source_dir": "K22-妖猫出长安",
+      "characters": 5,
+      "clues": 55,
+      "phases": 12,
+      "phase_types": {
+        "discussion": 3,
+        "opening": 1,
+        "reading": 2,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1,
+        "whisper": 2
+      },
+      "votes": 1,
+      "endings": 1
+    },
+    {
+      "id": "k23",
+      "title": "诚如恶魔低语",
+      "source_dir": "K23-诚如恶魔低语",
+      "characters": 5,
+      "clues": 55,
+      "phases": 18,
+      "phase_types": {
+        "discussion": 4,
+        "opening": 2,
+        "reading": 2,
+        "reveal": 1,
+        "search": 2,
+        "vote": 7
+      },
+      "votes": 7,
+      "endings": 1
+    },
+    {
+      "id": "k24",
+      "title": "惊魂青金村",
+      "source_dir": "K24-惊魂青金村",
+      "characters": 5,
+      "clues": 61,
+      "phases": 14,
+      "phase_types": {
+        "discussion": 3,
+        "reading": 3,
+        "reveal": 1,
+        "search": 3,
+        "vote": 3,
+        "whisper": 1
+      },
+      "votes": 3,
+      "endings": 1
+    },
+    {
+      "id": "k25",
+      "title": "小白船上的哭声",
+      "source_dir": "K25-小白船上的哭声",
+      "characters": 5,
+      "clues": 20,
+      "phases": 12,
+      "phase_types": {
+        "discussion": 5,
+        "reading": 1,
+        "reveal": 1,
+        "search": 4,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1
+    },
+    {
+      "id": "k27",
+      "title": "隐秘关系",
+      "source_dir": "K27-隐秘关系",
+      "characters": 6,
+      "clues": 54,
+      "phases": 10,
+      "phase_types": {
+        "discussion": 4,
+        "reading": 1,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1,
+        "whisper": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K27-隐秘关系/images/villa-plan.jpg"
+      ]
+    },
+    {
+      "id": "k28",
+      "title": "女帝攻略",
+      "source_dir": "K28-女帝攻略",
+      "characters": 5,
+      "clues": 80,
+      "phases": 18,
+      "phase_types": {
+        "discussion": 4,
+        "opening": 3,
+        "reading": 4,
+        "reveal": 1,
+        "search": 5,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "adapted": [
+        "仅皇帝案进入玩家投票，其余案件由宿主揭晓。",
+        "封妃、立后与多凶手判定由宿主面板兜底。"
+      ]
+    },
+    {
+      "id": "k3",
+      "title": "大疫",
+      "source_dir": "K3-大疫",
+      "characters": 6,
+      "clues": 60,
+      "phases": 10,
+      "phase_types": {
+        "discussion": 4,
+        "reading": 1,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1,
+        "whisper": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K3-大疫/images/map.jpg"
+      ]
+    },
+    {
+      "id": "k4",
+      "title": "觉醒",
+      "source_dir": "K4-觉醒",
+      "characters": 4,
+      "clues": 44,
+      "phases": 8,
+      "phase_types": {
+        "discussion": 3,
+        "reading": 1,
+        "reveal": 1,
+        "search": 2,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K4-觉醒/images/map.jpg"
+      ]
+    },
+    {
+      "id": "k5",
+      "title": "杀死巫师",
+      "source_dir": "K5-杀死巫师",
+      "characters": 6,
+      "clues": 60,
+      "phases": 14,
+      "phase_types": {
+        "discussion": 5,
+        "reading": 1,
+        "reveal": 1,
+        "search": 6,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K5-杀死巫师/images/map.jpg"
+      ]
+    },
+    {
+      "id": "k6",
+      "title": "后天魔之谜",
+      "source_dir": "K6-后天魔之谜",
+      "characters": 5,
+      "clues": 58,
+      "phases": 12,
+      "phase_types": {
+        "discussion": 5,
+        "reading": 1,
+        "reveal": 1,
+        "search": 3,
+        "vote": 1,
+        "whisper": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K6-后天魔之谜/images/map.jpg"
+      ]
+    },
+    {
+      "id": "k7",
+      "title": "星火号",
+      "source_dir": "K7-星火号",
+      "characters": 5,
+      "clues": 55,
+      "phases": 10,
+      "phase_types": {
+        "discussion": 4,
+        "reading": 1,
+        "reveal": 1,
+        "search": 3,
+        "vote": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K7-星火号/images/starfire-map.jpg"
+      ]
+    },
+    {
+      "id": "k8",
+      "title": "望雀",
+      "source_dir": "K8-望雀",
+      "characters": 4,
+      "clues": 71,
+      "phases": 12,
+      "phase_types": {
+        "discussion": 4,
+        "reading": 1,
+        "reveal": 1,
+        "search": 4,
+        "vote": 1,
+        "whisper": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K8-望雀/images/map.jpg"
+      ]
+    },
+    {
+      "id": "k9",
+      "title": "疯人塔",
+      "source_dir": "K9-疯人塔",
+      "characters": 5,
+      "clues": 74,
+      "phases": 12,
+      "phase_types": {
+        "discussion": 4,
+        "reading": 1,
+        "reveal": 1,
+        "search": 4,
+        "vote": 1,
+        "whisper": 1
+      },
+      "votes": 1,
+      "endings": 1,
+      "assets": [
+        "/script-assets/K9-疯人塔/images/map.jpg"
+      ]
+    }
+  ]
+}

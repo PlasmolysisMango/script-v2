@@ -463,8 +463,29 @@ func TestVotesPrivateUntilAllQuestionsCompleteAndReveal(t *testing.T) {
 	}
 }
 
-func TestVoteTiesAndRevealSkipsToEnd(t *testing.T) {
+func TestRevealOmitsEndingTextDuplicateOfTruth(t *testing.T) {
 	p := miniature(t)
+	p.Truth = "SAME_BODY"
+	for i := range p.Endings {
+		p.Endings[i].Text = p.Truth
+	}
+	r := roomAt(t, p, "vote")
+	for _, pid := range []string{"a", "b"} {
+		submit(t, r, pid, "vote.cast", map[string]any{"question": "culprit", "option": "a"})
+		submit(t, r, pid, "vote.cast", map[string]any{"question": "witness", "option": "b"})
+	}
+	v := r.View("a")
+	ending := data[reveal.View](t, v.Data["reveal"])
+	if ending.Title != "Solved" || ending.Truth != p.Truth || ending.Text != "" {
+		t.Fatalf("duplicate ending text not omitted: %+v", ending)
+	}
+	raw := events(r, engine.HostID, "reveal")
+	if len(raw) != 1 || raw[0].Payload["text"] != "" || raw[0].Payload["truth"] != p.Truth {
+		t.Fatalf("reveal event duplicates truth: %+v", raw)
+	}
+}
+
+func TestVoteTiesAndRevealSkipsToEnd(t *testing.T) {	p := miniature(t)
 	p.Flow = append(p.Flow[:p.StepIndex("end")], script.Step{ID: "trap", Type: "discussion", Title: "Should be skipped"}, script.Step{ID: "end", Type: "end", Title: "End"})
 	r := roomAt(t, p, "vote")
 	for _, pid := range []string{"a", "b"} {
