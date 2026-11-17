@@ -1,0 +1,28 @@
+CLI + independent-player E2E
+
+Deterministic CLI smoke: after make build, run bash e2e/run_mini_cli.sh. It starts its own local server and plays the complete original mini script with three isolated profiles in a temporary HOME, then removes only its own temporary files.
+
+Start: make build; bin/jbs-server --addr 127.0.0.1:8080 --llm qoder
+Create: START_SERVER=0 JBS_URL=http://127.0.0.1:8080 JBS_LLM=qoder bash e2e/run_e2e.sh --mixed
+
+Give two independent subagents the printed room ID, server URL and bin/jbs path. Each must use only its own profile, filtered state and log; prohibit reading source script packages, truth, persistence files or another player's profile. Do not provide the host token.
+
+Player xiu:
+  bin/jbs --profile p-xiu --server http://127.0.0.1:8080 join ROOM --char xiu --name 修经理
+Read your own script. Follow the role's can_lie and performance instructions, deliberately providing a plausible false alibi or deflecting suspicion. Never announce hidden culprit status. Give one introduction and four discussion speeches; do not pass. Spend 3 investigation AP in search1 and 2 in search2 before ready. Vote based on your role's objectives. Record one exact deceptive speech for manual verification.
+
+Player zhang:
+  bin/jbs --profile p-zhang --server http://127.0.0.1:8080 join ROOM --char zhang --name 张二副
+Read your own script and do not fabricate facts. Give one introduction and four discussion speeches. Investigate xiu-room three times in search1 and twice in search2, if available; otherwise choose remaining locations. Publish relevant evidence from your own inventory, especially wax/casing clues, and cast a clue-based vote.
+
+Both players repeatedly run, always with their own --profile and --server:
+  jbs wait --until-actions --timeout 600s
+  jbs state
+  jbs ready | say TEXT | search LOCATION | publish CLUE | pm TARGET TEXT | vote murderer CHARACTER
+Search before ready whenever search remains available. Re-read state after rejection; the CLI handles stale-state retries. Exit 0 from wait means act, 2 means timeout, 3 means normal game completion. No out-of-game communication between agents.
+
+After BOTH agents finish, the coordinator verifies:
+  E2E_ROOM=ROOM E2E_DATA="$PWD/data" E2E_LLM=qoder E2E_AI_SEATS=han,hong,lin go test -tags e2e ./e2e -v -count=1
+Assertions cover the full flow, 25 speeches with matching TTS audiences, AP/gating/ownership, private scripts and votes, AI fallback rate <=25%, complete truth and outcome. Separately review the xiu speech against that role's private script for intentional deception. Do not weaken assertions to turn a failed game into a pass.
+
+Browser E2E: install Playwright in a separate tools directory and install its Chromium browser. Start the production server above, then run NODE_PATH=/path/to/tools/node_modules JBS_BROWSER_URL=http://127.0.0.1:8080/ node e2e/browser.cjs. This creates one human plus four Mock seats and drives the real UI through all phases, including private messaging, clue publication, voting, page reload, actual WebSocket disconnection with missed-event replay, and mobile layout. Screenshots and results are saved under e2e/artifacts/browser (or JBS_BROWSER_ARTIFACTS). Chromium may need system libraries. Audible Chinese TTS requires an installed system voice; a headless environment with no voices verifies the explicit unavailable state instead.

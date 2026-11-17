@@ -1,0 +1,32 @@
+{
+ "meta":{"id":"mini","title":"最后一封信","players":3,"lang":"zh-CN","intro":"一间书房中，收藏家倒在书桌旁。三位客人必须找出谁调换了酒杯。","rules":"只有凶手可以说谎。"},
+ "characters":[
+  {"id":"a","name":"陈画师","public_intro":"受邀作画的画师。","tts":{"voice_hint":"female"},"sections":[{"act":1,"title":"经历","body":"你一直在画室，听到书房争吵。这是画师的私密经历。"}],"goals":["找出凶手"],"ability":"不能说谎","can_lie":false},
+  {"id":"b","name":"周管家","public_intro":"宅邸的管家。","tts":{"voice_hint":"male"},"sections":[{"act":1,"title":"经历","body":"你为了继承遗产，把毒药放进收藏家的酒杯。这是管家的私密经历。"}],"goals":["隐藏自己是凶手"],"performance":"你声称在厨房准备晚餐。","can_lie":true,"is_culprit":true},
+  {"id":"c","name":"林学生","public_intro":"收藏家的学生。","tts":{"voice_hint":"male"},"sections":[{"act":1,"title":"经历","body":"你在花园看到管家把药瓶丢进垃圾桶。这是学生的私密经历。"}],"goals":["找出凶手"],"can_lie":false}
+ ],
+ "acts":[{"id":1,"title":"书房之夜"}],
+ "locations":[{"id":"study","name":"书房","act":1},{"id":"kitchen","name":"厨房","act":1},{"id":"garden","name":"花园","act":1}],
+ "clues":[
+  {"id":"study-1","location":"study","title":"酒杯","body":"死者酒杯中有毒药残留。","act":1,"visibility":"public"},
+  {"id":"kitchen-1","location":"kitchen","title":"遗嘱","body":"管家是遗嘱的唯一继承人。","act":1,"visibility":"private"},
+  {"id":"kitchen-2","location":"kitchen","title":"药柜","body":"厨房药柜里有一瓶少了半瓶的毒药。","act":1,"visibility":"private"},
+  {"id":"garden-1","location":"garden","title":"药瓶","body":"垃圾桶的药瓶上有管家的指纹。","act":1,"visibility":"private"},
+  {"id":"garden-2","location":"garden","title":"钥匙","body":"花园找到一把厨房钥匙。","act":1,"visibility":"private"},
+  {"id":"study-2","location":"study","title":"秘密账本","body":"管家在账本中写下买药的费用。","act":1,"visibility":"private","unlock":{"requires_clues":["garden-2"],"requires_phase":"search2"}}
+ ],
+ "flow":[
+  {"id":"lobby","type":"ready_check","title":"准备"},
+  {"id":"reading","type":"reading","title":"阅读","params":{"act":1}},
+  {"id":"intro","type":"intro","title":"介绍","params":{"rounds":1}},
+  {"id":"search1","type":"search","title":"首轮搜证","params":{"action_points":1}},
+  {"id":"discussion","type":"discussion","title":"讨论","params":{"rounds":1}},
+  {"id":"search2","type":"search","title":"追加搜证","params":{"action_points":1}},
+  {"id":"vote","type":"vote","title":"投票"},
+  {"id":"reveal","type":"reveal","title":"真相"},
+  {"id":"end","type":"end","title":"结束"}
+ ],
+ "votes":[{"id":"murderer","question":"谁调换了酒杯？","options":"characters","correct":"b"}],
+ "endings":[{"when":{"murderer":"correct"},"title":"成功破案","text":"管家的计划被识破。"},{"when":{"murderer":"wrong"},"title":"遗憾错判","text":"真凶暂时逃过了指认。"}],
+ "truth":"管家周某为了继承遗产，在收藏家的酒杯里下毒。药瓶指纹和药柜能证实这一点。"
+}
